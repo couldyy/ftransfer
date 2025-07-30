@@ -1,6 +1,8 @@
 # ftransfer
 Simple program to transfer files over network using TCP/IP protocol
 
+> [!WARNING]
+> There is no encryption yet, use it on your own risk.
 ## Build
 In order to build, clone repo and do:
 ```

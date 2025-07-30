@@ -6,16 +6,7 @@
 #include <stdlib.h>
 #include "utils.h"
 
-//#define ADDR "127.0.0.1"
-//#define PORT 8000
 #define CONNECTIONS_LIMIT 1
-
-//#define BUFFER_SIZE 1024 * 1024 
-//#ifdef __linux__
-//#define SAVE_FOLDER_PATH "/home/couldy/Documents/vm_to_host_server/transfer_folder"
-//#elif _WIN32
-//#define SAVE_FOLDER_PATH "C:\\Users\\qwe\\Desktop"
-//#endif
 
 
 #define BUFFER_SIZE 8192
@@ -23,9 +14,7 @@
 typedef enum {
 	SERVER,
 	CLIENT
-
 } MODE;
-
 
 MODE mode;
 
@@ -35,7 +24,7 @@ void server_windows(const char* addr, short port);
 void client_windows(const char* addr, short port);
 
 #else   // linuix and macOS
-void server_test1_linux(const char* addr, short port);
+void server_linux(const char* addr, short port);
 void client_linux(const char* addr, short port);
 
 #endif
@@ -45,7 +34,6 @@ void drag_and_drop_linux(char*** paths, int* path_count);
 void drag_and_drop_windows(char*** paths, int* path_count);
 
 void free_paths_array(char*** paths, int path_count);
-
 
 
 int main(int argc, char** argv){
@@ -72,7 +60,7 @@ int main(int argc, char** argv){
 		#ifdef _WIN32
 			server_windows(addr, port);
 		#else 
-			server_test1_linux(addr, port);
+			server_linux(addr, port);
 		#endif
 	}
 	else if(strcmp(argv[1], "-c") == 0){
@@ -85,22 +73,17 @@ int main(int argc, char** argv){
 		#endif
 	}
 
-
 	return 0;
 }
 
 #ifndef _WIN32
-void server_test1_linux(const char* addr, short port){
-	//struct sockaddr_in      server_addr;
-    //struct sockaddr_in      peer_addr;
-
+void server_linux(const char* addr, short port){
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(server_socket == -1) {
         fprintf(stderr, "Creating socket failed: %s\n", strerror(errno));
         exit(1);
     }
 	
-	//memset(&server_addr, 0, sizeof(server_addr));
 
     // make socket reusable (do not put it in TIME WAIT state after closing socket)
     int enable = 1;
@@ -156,10 +139,6 @@ void server_test1_linux(const char* addr, short port){
 	int path_count;
 	drag_and_drop_linux(&file_paths, &path_count);
 
-	//printf("sending %d files\n", path_count);
-	//char path_count_buff[128];
-	//sprintf(path_count_buff, "%d", path_count);
-	//send(peer_socket, path_count_buff, sizeof(path_count_buff), 0); //send how many files to transfer to client
 	
 	struct stat file_stat;
 	off_t offset;
@@ -177,8 +156,6 @@ void server_test1_linux(const char* addr, short port){
     }
 	free_paths_array(&file_paths, path_count);
 
-	//send(client_fd, END_SIGNAL, sizeof(END_SIGNAL), 0);
-	//printf("sent END_SIGNAL\n");
     // TODO WARNING Close it right way according to SO_LINGER article
 	close(peer_socket);
 	printf("Connection closed\n");
@@ -234,7 +211,6 @@ void server_windows(const char* addr, short port){
 	printf("Initializing winsock\n");
 	if(WSAStartup(MAKEWORD(2,2), &wsa) != 0){
         wsa_print_error("Failed tp initialize", WSAGetLastError());
-		//printf("Failed. Error Code: %d\n", WSAGetLastError());
         exit(1);
 	}
 	printf("Initialized\n");
@@ -252,7 +228,6 @@ void server_windows(const char* addr, short port){
         exit(1);
     }
 
-	//memset(&server_addr, 0, sizeof(server_addr));
 
     struct sockaddr_in local;
 	local.sin_family = AF_INET;
@@ -494,10 +469,7 @@ void drag_and_drop_linux(char ***paths, int *path_count) {
 void drag_and_drop_windows(char*** paths, int* path_count){         
     char buff[4096];                                                
 	printf("Drag&Drop files here:\n");
-    //scanf("%4095s",buff); //get filepaths user dropped            
     fgets(buff, sizeof(buff), stdin);
-	//if(buff[strlen(buff) - 1] == '\n')
-	//	printf("char is '\\n'");
 	size_t len = strlen(buff);
     if (len > 0 && buff[strlen(buff) - 1] == '\n') {
         buff[len - 1] = '\0';
@@ -511,7 +483,6 @@ void drag_and_drop_windows(char*** paths, int* path_count){
     *path_count = 0;                                                
     char* path;         
      
-    //printf("part: %s, iteration %d\n", path_size, *size);         
     while((path = strtok_r(theRest, token, &theRest)) != NULL){    
         if(*path_count < 1)
             *paths = (char**)malloc((*path_count+1) * sizeof(char*));
@@ -519,13 +490,10 @@ void drag_and_drop_windows(char*** paths, int* path_count){
             *paths = realloc(*paths, (*path_count+1) * sizeof(char *));
         (*paths)[*path_count] = strdup(path);
         *path_count += 1;                                           
-        //path_size = strtok_r(buff, token, &buff);    
 		printf("%s\n", path);             
     }                                                              
 	free(str);
 }
-
-
 
 void free_paths_array(char*** paths, int path_count){
 	for(int i = 0; i < path_count; i++){
